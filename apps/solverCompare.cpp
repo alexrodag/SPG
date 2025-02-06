@@ -37,6 +37,7 @@
 #include <spg/sim/solver/vbd.h>
 #include <spg/geom/triangleMesh.h>
 #include <spg/geom/tetrahedralMesh.h>
+#include <spg/geom/io/obj.h>
 
 ///////////////////////////////////////////////////////////
 // Simulation object creation methods and types for the GUI
@@ -689,6 +690,33 @@ int main()
                             }
                         }
                     }
+                    for (int i = 0; i < solver->rbGroups().size(); ++i) {
+                        auto &rbGroup = solver->rbGroups()[i];
+                        for (int j = 0; j < rbGroup.nBodies(); ++j) {
+                            auto *sm = polyscope::getSurfaceMesh("solver" + std::to_string(s) + "rbGroup" +
+                                                                 std::to_string(i) + "rb" + std::to_string(j));
+                            const auto &pos = rbGroup.positions()[i];
+                            const auto &rotation = rbGroup.rotationMatrices()[i];
+                            glm::mat4 mat(rotation(0, 0),
+                                          rotation(0, 1),
+                                          rotation(0, 2),
+                                          pos(0),
+                                          rotation(1, 0),
+                                          rotation(1, 1),
+                                          rotation(1, 2),
+                                          pos(1),
+                                          rotation(2, 0),
+                                          rotation(2, 1),
+                                          rotation(2, 2),
+                                          pos(2),
+                                          0,
+                                          0,
+                                          0,
+                                          1);
+                            mat = glm::transpose(mat);
+                            sm->setTransform(mat);
+                        }
+                    }
                 }
             };
             auto l_registerSolver = [&polyscopeToObject](auto &solver, int solverId) {
@@ -765,6 +793,36 @@ int main()
                         }
                     }
                 }
+                for (int i = 0; i < solver->rbGroups().size(); ++i) {
+                    auto &rbGroup = solver->rbGroups()[i];
+                    for (int j = 0; j < rbGroup.nBodies(); ++j) {
+                        polyscope::SurfaceMesh *sm =
+                            polyscope::registerSurfaceMesh("solver" + std::to_string(solverId) + "rbGroup" +
+                                                               std::to_string(i) + "rb" + std::to_string(j),
+                                                           rbGroup.visualMeshes()[j].vertices(),
+                                                           rbGroup.visualMeshes()[j].faces());
+                        const auto &pos = rbGroup.positions()[i];
+                        const auto &rotation = rbGroup.rotationMatrices()[i];
+                        glm::mat4 mat(rotation(0, 0),
+                                      rotation(0, 1),
+                                      rotation(0, 2),
+                                      pos(0),
+                                      rotation(1, 0),
+                                      rotation(1, 1),
+                                      rotation(1, 2),
+                                      pos(1),
+                                      rotation(2, 0),
+                                      rotation(2, 1),
+                                      rotation(2, 2),
+                                      pos(2),
+                                      0,
+                                      0,
+                                      0,
+                                      1);
+                        mat = glm::transpose(mat);
+                        sm->setTransform(mat);
+                    }
+                }
             };
             auto l_unregisterSolver = [](const auto &solver, int solverId) {
                 for (int i = 0; i < solver->simObjects().size(); ++i) {
@@ -820,6 +878,30 @@ int main()
                 } else if (solverType == typeIndex++) {
                     solver = std::make_shared<spg::solver::QuasiStaticNewton>();
                 }
+                // TEMP HACK
+                spg::SimObject obj;
+                spg::RigidBodyGroup rbGroup;
+                auto [vertices, faces] = spg::io::loadObj("./unit-cube.obj");
+                spg::Real width{1}, height{3}, depth{0.2}, mass{1};
+                spg::Matrix3 transform;
+                transform.setZero();
+                transform(0, 0) = width;
+                transform(1, 1) = height;
+                transform(2, 2) = depth;
+                for (auto &v : vertices) {
+                    v = transform * v;
+                }
+                spg::TriangleMesh mesh(vertices, vertices, faces);
+                spg::Matrix3 localInertia;
+                localInertia.setZero();
+                localInertia(0, 0) = 1.0 / 12.0 * mass * (height * height + depth * depth);
+                localInertia(1, 1) = 1.0 / 12.0 * mass * (width * width + depth * depth);
+                localInertia(2, 2) = 1.0 / 12.0 * mass * (width * width + height * height);
+
+                rbGroup.addBody({0, 0, 0}, {0, 0, 0}, mass, {0, 0, 0.001}, {0, 0, 0.001}, localInertia, mesh);
+                rbGroup.omegas().back() = {1, 0.000001, 0.000001};
+                solver->addRigidBodyGroup(rbGroup);
+                // TEMP HACK
                 solver->setNumSubsteps(solverSubsteps[solverId]);
                 solver->setVerbosity(verbosity);
                 const auto objects = createSceneObjects(

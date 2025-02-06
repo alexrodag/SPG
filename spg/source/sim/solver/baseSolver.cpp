@@ -9,6 +9,10 @@ void BaseSolver::addSimObject(const SimObject &object)
 {
     m_simObjects.push_back(object);
 }
+void BaseSolver::addRigidBodyGroup(const RigidBodyGroup &rbGroup)
+{
+    m_rigidBodyGroups.push_back(rbGroup);
+}
 
 void BaseSolver::reset()
 {
