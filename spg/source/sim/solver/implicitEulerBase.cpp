@@ -218,8 +218,7 @@ void ImplicitEulerBase::getSystemForce(VectorX &f) const
             timer.start();
 #pragma omp parallel for
             for (int i = 0; i < nstencils; ++i) {
-                // TODO: Missing
-                // energy->accumulateForces(i, rigidBodyGroup, accumulatedNDOF, f, true);
+                energy->accumulateForces(i, rigidBodyGroup, accumulatedNDOF, f, true);
             }
             timer.stop();
             accumulatedTime += timer.getMilliseconds();
@@ -313,7 +312,33 @@ void ImplicitEulerBase::getSystemStiffnessMatrix(SparseMatrix &K) const
         }
         accumulatedNDOF += object.nDOF();
     }
-    // TODO: Missing the RB part
+
+    const int nRigidBodyGroups = static_cast<int>(m_rigidBodyGroups.size());
+    for (int objId = 0; objId < nRigidBodyGroups; ++objId) {
+        const auto &object = m_rigidBodyGroups[objId];
+        // Accumulate hessian triplets
+        const auto &energies = object.energies();
+        for (const auto &energy : energies) {
+            const auto nstencils = energy->nStencils();
+            std::vector<std::vector<Triplet>> perStencilTriplets(nstencils);
+            timer.start();
+#pragma omp parallel for
+            for (int i = 0; i < nstencils; ++i) {
+                perStencilTriplets[i] = energy->negativeHessianTriplets(i, object, accumulatedNDOF);
+            }
+            timer.stop();
+            accumulatedTimeHComp += timer.getMilliseconds();
+            timer.start();
+            for (int i = 0; i < nstencils; ++i) {
+                m_tripletHolder.insert(
+                    m_tripletHolder.end(), perStencilTriplets[i].begin(), perStencilTriplets[i].end());
+            }
+            timer.stop();
+            accumulatedTimeHTriplets += timer.getMilliseconds();
+        }
+        accumulatedNDOF += object.nDOF();
+    }
+
     timer.start();
     K.setFromTriplets(m_tripletHolder.begin(), m_tripletHolder.end());
     timer.stop();

@@ -28,12 +28,12 @@ void SimObject::addParticle(const Vector3 &p, const Vector3 &p0, const Real mass
     m_w.push_back(mass == 0 ? 0 : 1 / mass);
 }
 
-void SimObject::addEnergy(std::shared_ptr<Energy> energy)
+void SimObject::addEnergy(std::shared_ptr<EnergyT> energy)
 {
     m_energies.push_back(energy);
 }
 
-void SimObject::removeEnergy(std::shared_ptr<Energy> energy)
+void SimObject::removeEnergy(std::shared_ptr<EnergyT> energy)
 {
     m_energies.erase(
         std::remove_if(
@@ -85,6 +85,19 @@ void RigidBodyGroup::addBody(const Vector3 &p,
     m_inertiaInv.emplace_back();
     updateInertia(m_inertia.size() - 1);
     m_visualMesh.push_back(mesh);
+}
+
+void RigidBodyGroup::addEnergy(std::shared_ptr<EnergyT> energy)
+{
+    m_energies.push_back(energy);
+}
+
+void RigidBodyGroup::removeEnergy(std::shared_ptr<EnergyT> energy)
+{
+    m_energies.erase(
+        std::remove_if(
+            m_energies.begin(), m_energies.end(), [&energy](auto &currentEnergy) { return energy == currentEnergy; }),
+        m_energies.end());
 }
 
 void RigidBodyGroup::reset()
