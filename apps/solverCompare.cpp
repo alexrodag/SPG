@@ -901,7 +901,7 @@ int main()
                 rbGroup.addBody({0, 0, 0}, {0, 0, 0}, mass, {0, 0, 0.001}, {0, 0, 0.001}, localInertia, mesh);
                 rbGroup.omegas().back() = {1, 0.000001, 0.000001};
                 std::shared_ptr<spg::SpringAnchorRBEnergy> springEnergy = std::make_shared<spg::SpringAnchorRBEnergy>();
-                springEnergy->addStencil({0}, {0, 0, 0}, 1);
+                springEnergy->addStencil({0}, {-1, -1, 0}, {0.5, 1.5, 0}, 10);
                 rbGroup.addEnergy(springEnergy);
                 solver->addRigidBodyGroup(rbGroup);
                 // TEMP HACK

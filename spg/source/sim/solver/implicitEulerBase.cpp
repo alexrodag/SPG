@@ -191,8 +191,8 @@ void ImplicitEulerBase::getSystemForce(VectorX &f) const
         accumulatedNDOF += object.nDOF();
     }
 
-    const int nRigidBodyGrups = static_cast<int>(m_rigidBodyGroups.size());
-    for (int objId = 0; objId < nRigidBodyGrups; ++objId) {
+    const int nRigidBodyGroups = static_cast<int>(m_rigidBodyGroups.size());
+    for (int objId = 0; objId < nRigidBodyGroups; ++objId) {
         const auto &rigidBodyGroup = m_rigidBodyGroups[objId];
         // Accumulate external torques and fictional torques
         const auto &inertias = rigidBodyGroup.inertias();

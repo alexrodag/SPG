@@ -19,5 +19,8 @@ void BaseSolver::reset()
     for (auto &obj : m_simObjects) {
         obj.reset();
     }
+    for (auto &rbg : m_rigidBodyGroups) {
+        rbg.reset();
+    }
 }
 }  // namespace spg::solver
